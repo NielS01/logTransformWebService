@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:cmis="http://www.mulesoft.org/schema/mule/cmis" xmlns:file="http://www.mulesoft.org/schema/mule/file"  xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/cmis http://www.mulesoft.org/schema/mule/cmis/current/mule-cmis.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config doc:name="HTTP Listener Configuration" host="0.0.0.0" name="HTTP_Listener_Configuration" port="7082"/>
+    <http:listener-config doc:name="HTTP Listener Configuration_xml" host="0.0.0.0" name="HTTP_Listener_Configuration_xml" port="7081"/>
+    <http:request-config doc:name="HTTP Request Configuration" host="sydsitinspl01" name="HTTP_Request_Configuration" port="9080"/>
+    <file:connector name="File" outputPattern="inbound_requests.txt" writeToDirectory="C:\temp\muleEsb" autoDelete="true" streaming="true" validateConnections="true" doc:name="File" outputAppend="true"/>
+    <file:connector name="File-out" outputPattern="outbound_requests.txt" writeToDirectory="C:\temp\muleEsb" autoDelete="true" streaming="true" validateConnections="true" doc:name="File" outputAppend="true"/>
+   
+    <flow name="main">
+        <http:listener config-ref="HTTP_Listener_Configuration" doc:name="Receive HTTP Requests From Apps" path="/"/>
+        <!--  
+        <logger level="INFO" message="#[message.payloadAs(java.lang.String)]"/>
+		-->
+		 <flow-ref doc:name="Log To File" name="log-request"/>
+        <response>
+            <flow-ref doc:name="Log Response File" name="log-response"/>
+        </response>
+        <response>
+            <json:xml-to-json-transformer doc:name="XML to JSON"/>
+        </response>
+        <cxf:proxy-service doc:name="Check WSDL" enableMuleSoapHeaders="false" namespace="http://com.innovation" payload="envelope" port="ViewPolicyPTPort" service="ViewPolicyService" wsdlLocation="http://syddevinspl01:9080/Jasper/ViewPolicyJax?wsdl"/>
+	    <flow-ref doc:name="Copy HTTP Headers" name="copy-headers"/>
+        <cxf:proxy-client doc:name="Proxy Client" enableMuleSoapHeaders="false" payload="envelope"/>
+        <http:request config-ref="HTTP_Request_Configuration" doc:name="Send Requests to API" method="POST" path="Jasper/ViewPolicyJax"/>
+ 		<gzip-uncompress-transformer doc:name="Gzip Uncompress"/>
+        <response>
+            <remove-property propertyName="content-encoding" doc:name="Remove Content-encoding"/>
+        </response>
+
+         <flow-ref doc:name="Copy HTTP Headers" name="copy-headers"/>
+    </flow>
+    
+    <flow name="main2">
+        <http:listener config-ref="HTTP_Listener_Configuration_xml" doc:name="Receive HTTP Requests From Apps" path="/"/>
+        <!--  
+        <logger level="INFO" message="#[message.payloadAs(java.lang.String)]"/>
+		-->
+		 <flow-ref doc:name="Log To File" name="log-request"/>
+        <cxf:proxy-service doc:name="Check WSDL" enableMuleSoapHeaders="false" namespace="http://com.innovation" payload="envelope" port="ViewPolicyPTPort" service="ViewPolicyService" wsdlLocation="http://syddevinspl01:9080/Jasper/ViewPolicyJax?wsdl"/>
+	    <flow-ref doc:name="Copy HTTP Headers" name="copy-headers"/>
+        <cxf:proxy-client doc:name="Proxy Client" enableMuleSoapHeaders="false" payload="envelope"/>
+        <http:request config-ref="HTTP_Request_Configuration" doc:name="Send Requests to API" method="POST" path="Jasper/ViewPolicyJax"/>
+ 		<gzip-uncompress-transformer doc:name="Gzip Uncompress"/>
+        <response>
+            <remove-property propertyName="content-encoding" doc:name="Remove Content-encoding"/>
+        </response>
+
+         <flow-ref doc:name="Copy HTTP Headers" name="copy-headers"/>
+    </flow>
+    <sub-flow name="copy-headers">
+        <copy-properties doc:name="Copy HTTP headers" propertyName="*"/>
+        <remove-property doc:name="Remove host property" propertyName="Host"/>
+        <remove-property doc:name="Remove Content Length Header" propertyName="Content-Length"/>
+		<remove-property doc:name="Remove HTTP synthetic properties" propertyName="http.*"/>
+        <remove-property doc:name="Remove MULE properties" propertyName="MULE_*"/>
+        <remove-property doc:name="Remove Connection Header" propertyName="Connection"/>
+        <remove-property doc:name="Remove Transfer-encoding Header" propertyName="transfer-encoding"/>
+    </sub-flow>
+    
+    <sub-flow name="log-request">
+         <logger level="INFO" message="#[message.payloadAs(java.lang.String)]" doc:name="Logger"/>
+        <file:outbound-endpoint path="C:\temp\muleEsb" responseTimeout="10000" doc:name="write-to-File" connector-ref="File" outputPattern="inbound_requests.txt"/>
+    </sub-flow>
+
+    <sub-flow name="log-response">
+         <logger level="INFO" message="#[message.payloadAs(java.lang.String)]" doc:name="Logger"/>
+        <file:outbound-endpoint path="C:\temp\muleEsb" responseTimeout="10000" doc:name="write-to-File" connector-ref="File-out" outputPattern="outbound_requests.txt"/>
+    </sub-flow>    
+    
+</mule>
