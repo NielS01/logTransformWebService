@@ -9,7 +9,7 @@ http://www.mulesoft.org/schema/mule/cmis http://www.mulesoft.org/schema/mule/cmi
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <http:listener-config doc:name="HTTP Listener Configuration" host="0.0.0.0" name="HTTP_Listener_Configuration" port="7082"/>
     <http:listener-config doc:name="HTTP Listener Configuration_xml" host="0.0.0.0" name="HTTP_Listener_Configuration_xml" port="7081"/>
-    <http:request-config doc:name="HTTP Request Configuration" host="sydsitinspl01" name="HTTP_Request_Configuration" port="9080"/>
+    <http:request-config doc:name="HTTP Request Configuration" host="XXX_hostForTargetService" name="HTTP_Request_Configuration" port="9080"/>
     <file:connector name="File" outputPattern="inbound_requests.txt" writeToDirectory="C:\temp\muleEsb" autoDelete="true" streaming="true" validateConnections="true" doc:name="File" outputAppend="true"/>
     <file:connector name="File-out" outputPattern="outbound_requests.txt" writeToDirectory="C:\temp\muleEsb" autoDelete="true" streaming="true" validateConnections="true" doc:name="File" outputAppend="true"/>
    
@@ -20,15 +20,15 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		-->
 		 <flow-ref doc:name="Log To File" name="log-request"/>
         <response>
-            <flow-ref doc:name="Log Response File" name="log-response"/>
+            <flow-ref name="log-response" doc:name="Log Response File"/>
         </response>
         <response>
             <json:xml-to-json-transformer doc:name="XML to JSON"/>
         </response>
-        <cxf:proxy-service doc:name="Check WSDL" enableMuleSoapHeaders="false" namespace="http://com.innovation" payload="envelope" port="ViewPolicyPTPort" service="ViewPolicyService" wsdlLocation="http://syddevinspl01:9080/Jasper/ViewPolicyJax?wsdl"/>
+        <cxf:proxy-service doc:name="Check WSDL" enableMuleSoapHeaders="false" namespace="http://com.innovation" payload="envelope" port="ViewPolicyPTPort" service="ViewPolicyService" wsdlLocation="http://XXX_hostForTargetService:9080/servicePath/XXX_ServiceJax?wsdl"/>
 	    <flow-ref doc:name="Copy HTTP Headers" name="copy-headers"/>
         <cxf:proxy-client doc:name="Proxy Client" enableMuleSoapHeaders="false" payload="envelope"/>
-        <http:request config-ref="HTTP_Request_Configuration" doc:name="Send Requests to API" method="POST" path="Jasper/ViewPolicyJax"/>
+        <http:request config-ref="HTTP_Request_Configuration" doc:name="Send Requests to API" method="POST" path="servicePath/XXX_ServiceJax"/>
  		<gzip-uncompress-transformer doc:name="Gzip Uncompress"/>
         <response>
             <remove-property propertyName="content-encoding" doc:name="Remove Content-encoding"/>
@@ -43,10 +43,10 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <logger level="INFO" message="#[message.payloadAs(java.lang.String)]"/>
 		-->
 		 <flow-ref doc:name="Log To File" name="log-request"/>
-        <cxf:proxy-service doc:name="Check WSDL" enableMuleSoapHeaders="false" namespace="http://com.innovation" payload="envelope" port="ViewPolicyPTPort" service="ViewPolicyService" wsdlLocation="http://syddevinspl01:9080/Jasper/ViewPolicyJax?wsdl"/>
+        <cxf:proxy-service doc:name="Check WSDL" enableMuleSoapHeaders="false" namespace="http://com.innovation" payload="envelope" port="ViewPolicyPTPort" service="ViewPolicyService" wsdlLocation="http://XXX_hostForTargetService:9080/servicePath/XXX_ServiceJax?wsdl"/>
 	    <flow-ref doc:name="Copy HTTP Headers" name="copy-headers"/>
         <cxf:proxy-client doc:name="Proxy Client" enableMuleSoapHeaders="false" payload="envelope"/>
-        <http:request config-ref="HTTP_Request_Configuration" doc:name="Send Requests to API" method="POST" path="Jasper/ViewPolicyJax"/>
+        <http:request config-ref="HTTP_Request_Configuration" doc:name="Send Requests to API" method="POST" path="servicePath/XXX_ServiceJax"/>
  		<gzip-uncompress-transformer doc:name="Gzip Uncompress"/>
         <response>
             <remove-property propertyName="content-encoding" doc:name="Remove Content-encoding"/>
